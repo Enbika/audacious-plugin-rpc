@@ -15,8 +15,6 @@
 #define EXPORT __attribute__((visibility("default")))
 #define APPLICATION_ID "484736379171897344"
 
-static const char *SETTING_EXTRA_TEXT = "extra_text";
-
 class RPCPlugin : public GeneralPlugin {
 
 public:
@@ -41,8 +39,14 @@ EXPORT RPCPlugin aud_plugin_instance;
 
 DiscordEventHandlers handlers;
 DiscordRichPresence presence;
+std::string title;
+std::string artist;
 std::string fullTitle;
+std::string album;
+std::string state;
 std::string playingStatus;
+std::int64_t length;
+std::int64_t timestamp;
 
 void init_discord() {
     memset(&handlers, 0, sizeof(handlers));
@@ -58,7 +62,10 @@ void init_presence() {
     presence.state = "Initialized";
     presence.details = "Waiting...";
     presence.largeImageKey = "logo";
+    presence.smallImageText = "Stopped";
     presence.smallImageKey = "stop";
+    presence.startTimestamp = 0;
+    presence.endTimestamp = 0;
     update_presence();
 }
 
@@ -75,23 +82,65 @@ void title_changed() {
     if (aud_drct_get_playing()) {
         bool paused = aud_drct_get_paused();
         Tuple tuple = aud_drct_get_tuple();
-        std::string artist(tuple.get_str(Tuple::Artist));
-        std::string title(tuple.get_str(Tuple::Title));
-        fullTitle = (artist + " - " + title).substr(0, 127);
+        title = tuple.get_str(Tuple::Title);
+
+        // audacious crashes when setting tuple.get_str(Tuple::Artist) on a std::string
+        // this workaround isn't recommended, but i'm not dealing with c++ enough to actually fix it
+        String artistString = tuple.get_str(Tuple::Artist);
+        if(artistString) {
+            artist = tuple.get_str(Tuple::Artist);
+            fullTitle = (title + " - " + artist).substr(0, 127);
+        }
+        else {
+            fullTitle = title.substr(0, 127);
+        }
+        
+        // same workaround used for the artist here
+        String albumString = tuple.get_str(Tuple::Album);
+        if(albumString) {
+            album = tuple.get_str(Tuple::Album);
+            state = album.substr(0, 127);
+        } else {
+            state = "";
+        }
+
+        length = tuple.get_int(Tuple::Length);
+        timestamp = (length / 1000) - (aud_drct_get_time() / 1000);
+
         playingStatus = paused ? "Paused" : "Listening";
 
         presence.details = fullTitle.c_str();
+        presence.state = state.c_str();
         presence.smallImageKey = paused ? "pause" : "play";
+        presence.startTimestamp = 0;
+        presence.endTimestamp = 0;
+        if(length == -1) {
+            presence.startTimestamp = paused ? 0 : (time(NULL) - aud_drct_get_time() / 1000);
+        } else {
+            presence.endTimestamp = (paused) ? 0 : time(NULL) + timestamp;
+        }
     } else {
         playingStatus = "Stopped";
+        presence.details = "";
         presence.state = "Stopped";
+        presence.smallImageText = "Stopped";
         presence.smallImageKey = "stop";
+        presence.startTimestamp = 0;
+        presence.endTimestamp = 0;
     }
 
-    std::string extraText(aud_get_str("audacious-plugin-rpc", SETTING_EXTRA_TEXT));
-    playingStatus = (playingStatus + " " + extraText).substr(0, 127);
+    presence.smallImageText = playingStatus.substr(0, 127).c_str();
+    update_presence();
+}
 
-    presence.state = playingStatus.c_str();
+void playback_stop_presence(void*, void*) {
+    playingStatus = "Stopped";
+    presence.details = "";
+    presence.state = "Stopped";
+    presence.smallImageText = "Stopped";
+    presence.smallImageKey = "stop";
+    presence.startTimestamp = 0;
+    presence.endTimestamp = 0;
     update_presence();
 }
 
@@ -108,7 +157,8 @@ bool RPCPlugin::init() {
     init_presence();
     hook_associate("playback ready", update_title_presence, nullptr);
     hook_associate("playback end", update_title_presence, nullptr);
-    hook_associate("playback stop", update_title_presence, nullptr);
+    hook_associate("playlist end reached", playback_stop_presence, nullptr);
+    hook_associate("playback stop", playback_stop_presence, nullptr);
     hook_associate("playback pause", update_title_presence, nullptr);
     hook_associate("playback unpause", update_title_presence, nullptr);
     hook_associate("title change", update_title_presence, nullptr);
@@ -118,7 +168,8 @@ bool RPCPlugin::init() {
 void RPCPlugin::cleanup() {
     hook_dissociate("playback ready", update_title_presence);
     hook_dissociate("playback end", update_title_presence);
-    hook_dissociate("playback stop", update_title_presence);
+    hook_dissociate("playlist end reached", playback_stop_presence);
+    hook_dissociate("playback stop", playback_stop_presence);
     hook_dissociate("playback pause", update_title_presence);
     hook_dissociate("playback unpause", update_title_presence);
     hook_dissociate("title change", update_title_presence);
@@ -129,10 +180,6 @@ const char RPCPlugin::about[] = N_("Discord RPC music status plugin\n\nWritten b
 
 const PreferencesWidget RPCPlugin::widgets[] =
 {
-  WidgetEntry(
-      N_("Extra status text:"),
-      WidgetString("audacious-plugin-rpc", SETTING_EXTRA_TEXT, title_changed)
-  ),
   WidgetButton(
       N_("Fork on GitHub"),
       {open_github}
