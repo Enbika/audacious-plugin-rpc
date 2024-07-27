@@ -65,6 +65,7 @@ void update_presence() {
 void init_presence() {
     memset(&presence, 0, sizeof(presence));
     presence.type = DiscordActivityType_Listening;
+    presence.details = "Stopped";
     presence.smallImageText = "Stopped";
     presence.largeImageKey = "logo";
     presence.smallImageKey = "stop";
@@ -118,8 +119,8 @@ void title_changed() {
         presence.endTimestamp = (paused) ? 0 : time(NULL) + timestamp;
     } else {
         playingStatus = "Stopped";
-        presence.details = "";
-        presence.state = "Stopped";
+        presence.details = "Stopped";
+        presence.state = "";
         presence.largeImageText = "";
         presence.smallImageText = "Stopped";
         presence.smallImageKey = "stop";
@@ -136,8 +137,10 @@ void title_changed() {
 
 void playback_stop_presence(void*, void*) {
     playingStatus = "Stopped";
+    presence.details = "Stopped";
+    presence.state = "";
+    presence.largeImageText = "";
     presence.smallImageText = "Stopped";
-    presence.largeImageKey = "logo";
     presence.smallImageKey = "stop";
     presence.startTimestamp = 0;
     presence.endTimestamp = 0;
