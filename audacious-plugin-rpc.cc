@@ -128,7 +128,9 @@ void title_changed() {
     }
 
     std::string extraText(aud_get_str("audacious-plugin-rpc", SETTING_EXTRA_TEXT));
-    presence.smallImageText = (playingStatus + " " + extraText).substr(0, 127).c_str();
+    playingStatus = (playingStatus + " " + extraText).substr(0, 127);
+    
+    presence.smallImageText = playingStatus.c_str();
     update_presence();
 }
 
