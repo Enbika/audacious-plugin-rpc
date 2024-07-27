@@ -15,7 +15,7 @@ include(FetchContent)
 option(BUILD_EXAMPLES "Build examples for discord-rpc" OFF)
 FetchContent_Declare(
   discord-rpc
-  URL https://github.com/discord/discord-rpc/archive/refs/heads/master.tar.gz
+  URL https://github.com/ungive/discord-rpc/archive/refs/heads/master.tar.gz
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 
