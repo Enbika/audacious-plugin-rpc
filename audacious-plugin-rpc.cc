@@ -113,7 +113,7 @@ void title_changed() {
         presence.largeImageKey = "logo";
         presence.smallImageKey = paused ? "pause" : "play";
         presence.startTimestamp = paused ? 0 : (time(NULL) - aud_drct_get_time() / 1000);
-        presence.endTimestamp = (paused) ? 0 : time(NULL) + timestamp;
+        presence.endTimestamp = (paused || length == -1) ? 0 : time(NULL) + timestamp;
     } else {
         playingStatus = "Stopped";
         presence.details = "Stopped";
