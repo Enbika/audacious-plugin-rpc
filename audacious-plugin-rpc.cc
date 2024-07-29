@@ -68,6 +68,7 @@ void init_presence() {
     memset(&presence, 0, sizeof(presence));
     if(!aud_get_bool("audacious-plugin-rpc", SETTING_USE_PLAYING))
         presence.type = DiscordActivityType_Listening;
+    presence.startTimestamp = time(NULL);
     update_presence();
 }
 
