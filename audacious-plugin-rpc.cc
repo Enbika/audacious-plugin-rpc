@@ -183,6 +183,7 @@ bool RPCPlugin::init() {
     hook_associate("playback stop", update_title_presence, nullptr);
     hook_associate("playback pause", update_title_presence, nullptr);
     hook_associate("playback unpause", update_title_presence, nullptr);
+    hook_associate("playback seek", update_title_presence, nullptr);
     hook_associate("playback stop", playback_stop_presence, nullptr);
     hook_associate("playlist end reached", playback_stop_presence, nullptr);
     hook_associate("title change", update_title_presence, nullptr);
@@ -194,6 +195,7 @@ void RPCPlugin::cleanup() {
     hook_dissociate("playback end", update_title_presence);
     hook_dissociate("playback pause", update_title_presence);
     hook_dissociate("playback unpause", update_title_presence);
+    hook_dissociate("playback seek", update_title_presence);
     hook_dissociate("playback stop", playback_stop_presence);
     hook_dissociate("playlist end reached", playback_stop_presence);
     hook_dissociate("title change", update_title_presence);
