@@ -45,6 +45,7 @@ DiscordEventHandlers handlers;
 DiscordRichPresence presence;
 std::string title;
 std::string titleText;
+std::string fullTitle;
 std::string artist;
 std::string artistText;
 std::string album;
@@ -90,14 +91,15 @@ void title_changed() {
         Tuple tuple = aud_drct_get_tuple();
         title = tuple.get_str(Tuple::Title);
         
-
         titleText = title.substr(0, 127);
 
         String artistString = tuple.get_str(Tuple::Artist);
         if(artistString) {
             artist = tuple.get_str(Tuple::Artist);
             artistText = artist.substr(0, 127);
+            fullTitle = (title + " - " + artist).substr(0, 127);
         } else {
+            fullTitle = title.substr(0, 127);
             artistText = "";
         }
         
@@ -114,9 +116,15 @@ void title_changed() {
 
         playingStatus = paused ? "Paused" : "Listening";
 
-        presence.details = titleText.c_str();
-        presence.state = artistText.c_str();
-        presence.largeImageText = albumText.c_str();
+        if(aud_get_bool("audacious-plugin-rpc", SETTING_USE_PLAYING)) {
+            presence.details = fullTitle.c_str();
+            presence.state = albumText.c_str();
+            presence.largeImageText = "";
+        } else {
+            presence.details = titleText.c_str();
+            presence.state = artistText.c_str();
+            presence.largeImageText = albumText.c_str();
+        }
         presence.largeImageKey = "logo";
         presence.smallImageKey = paused ? "pause" : "play";
         presence.startTimestamp = paused ? 0 : (time(NULL) - aud_drct_get_time() / 1000);
