@@ -78,16 +78,13 @@ void cleanup_discord() {
 }
 
 void title_changed() {
-    if (!aud_drct_get_ready()) {
-        return;
-    }
-    
     if(aud_get_bool("audacious-plugin-rpc", SETTING_USE_PLAYING))
         presence.type = DiscordActivityType_Playing;
     else
         presence.type = DiscordActivityType_Listening;
+    presence.largeImageKey = "logo";
 
-    if (aud_drct_get_playing()) {
+    if (aud_drct_get_ready() && aud_drct_get_playing()) {
         bool paused = aud_drct_get_paused();
         Tuple tuple = aud_drct_get_tuple();
         title = tuple.get_str(Tuple::Title);
@@ -126,7 +123,7 @@ void title_changed() {
             presence.state = artistText.c_str();
             presence.largeImageText = albumText.c_str();
         }
-        presence.largeImageKey = "logo";
+
         presence.smallImageKey = paused ? "pause" : "play";
         presence.startTimestamp = paused ? 0 : (time(NULL) - aud_drct_get_time() / 1000);
         presence.endTimestamp = (paused || length == -1) ? 0 : time(NULL) + timestamp;
@@ -135,8 +132,6 @@ void title_changed() {
         presence.details = "Stopped";
         presence.state = "";
         presence.largeImageText = "";
-        presence.largeImageKey = "logo";
-        presence.smallImageText = "Stopped";
         presence.smallImageKey = "stop";
         presence.startTimestamp = 0;
         presence.endTimestamp = 0;
@@ -146,24 +141,6 @@ void title_changed() {
     playingStatus = (playingStatus + " " + extraText).substr(0, 127);
     
     presence.smallImageText = playingStatus.c_str();
-    update_presence();
-}
-
-void playback_stop_presence(void*, void*) {
-    if(aud_get_bool("audacious-plugin-rpc", SETTING_USE_PLAYING))
-        presence.type = DiscordActivityType_Playing;
-    else
-        presence.type = DiscordActivityType_Listening;
-
-    playingStatus = "Stopped";
-    presence.details = "Stopped";
-    presence.state = "";
-    presence.largeImageText = "";
-    presence.largeImageKey = "logo";
-    presence.smallImageText = "Stopped";
-    presence.smallImageKey = "stop";
-    presence.startTimestamp = 0;
-    presence.endTimestamp = 0;
     update_presence();
 }
 
@@ -184,8 +161,7 @@ bool RPCPlugin::init() {
     hook_associate("playback pause", update_title_presence, nullptr);
     hook_associate("playback unpause", update_title_presence, nullptr);
     hook_associate("playback seek", update_title_presence, nullptr);
-    hook_associate("playback stop", playback_stop_presence, nullptr);
-    hook_associate("playlist end reached", playback_stop_presence, nullptr);
+    hook_associate("playlist end reached", update_title_presence, nullptr);
     hook_associate("title change", update_title_presence, nullptr);
     return true;
 }
@@ -193,11 +169,11 @@ bool RPCPlugin::init() {
 void RPCPlugin::cleanup() {
     hook_dissociate("playback ready", update_title_presence);
     hook_dissociate("playback end", update_title_presence);
+    hook_dissociate("playback stop", update_title_presence);
     hook_dissociate("playback pause", update_title_presence);
     hook_dissociate("playback unpause", update_title_presence);
     hook_dissociate("playback seek", update_title_presence);
-    hook_dissociate("playback stop", playback_stop_presence);
-    hook_dissociate("playlist end reached", playback_stop_presence);
+    hook_dissociate("playlist end reached", update_title_presence);
     hook_dissociate("title change", update_title_presence);
     cleanup_discord();
 }
