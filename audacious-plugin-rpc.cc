@@ -17,6 +17,7 @@
 #define APPLICATION_ID "484736379171897344"
 
 static const char *SETTING_EXTRA_TEXT = "extra_text";
+static const char *SETTING_USE_PLAYING = "use_playing_status";
 
 class RPCPlugin : public GeneralPlugin {
 
@@ -64,7 +65,8 @@ void update_presence() {
 
 void init_presence() {
     memset(&presence, 0, sizeof(presence));
-    presence.type = DiscordActivityType_Listening;
+    if(!aud_get_bool("audacious-plugin-rpc", SETTING_USE_PLAYING))
+        presence.type = DiscordActivityType_Listening;
     update_presence();
 }
 
@@ -77,6 +79,11 @@ void title_changed() {
     if (!aud_drct_get_ready()) {
         return;
     }
+    
+    if(aud_get_bool("audacious-plugin-rpc", SETTING_USE_PLAYING))
+        presence.type = DiscordActivityType_Playing;
+    else
+        presence.type = DiscordActivityType_Listening;
 
     if (aud_drct_get_playing()) {
         bool paused = aud_drct_get_paused();
@@ -134,6 +141,11 @@ void title_changed() {
 }
 
 void playback_stop_presence(void*, void*) {
+    if(aud_get_bool("audacious-plugin-rpc", SETTING_USE_PLAYING))
+        presence.type = DiscordActivityType_Playing;
+    else
+        presence.type = DiscordActivityType_Listening;
+
     playingStatus = "Stopped";
     presence.details = "Stopped";
     presence.state = "";
@@ -186,6 +198,10 @@ const PreferencesWidget RPCPlugin::widgets[] =
   WidgetEntry(
       N_("Extra status text:"),
       WidgetString("audacious-plugin-rpc", SETTING_EXTRA_TEXT, title_changed)
+  ),
+  WidgetCheck(
+      N_("Use \"Playing\" status"),
+      WidgetBool("audacious-plugin-rpc", SETTING_USE_PLAYING, title_changed)
   ),
   WidgetButton(
       N_("Fork on GitHub"),
