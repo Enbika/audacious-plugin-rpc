@@ -156,7 +156,6 @@ bool RPCPlugin::init() {
     init_discord();
     init_presence();
     hook_associate("playback ready", update_title_presence, nullptr);
-    hook_associate("playback end", update_title_presence, nullptr);
     hook_associate("playback stop", update_title_presence, nullptr);
     hook_associate("playback pause", update_title_presence, nullptr);
     hook_associate("playback unpause", update_title_presence, nullptr);
@@ -168,7 +167,6 @@ bool RPCPlugin::init() {
 
 void RPCPlugin::cleanup() {
     hook_dissociate("playback ready", update_title_presence);
-    hook_dissociate("playback end", update_title_presence);
     hook_dissociate("playback stop", update_title_presence);
     hook_dissociate("playback pause", update_title_presence);
     hook_dissociate("playback unpause", update_title_presence);
